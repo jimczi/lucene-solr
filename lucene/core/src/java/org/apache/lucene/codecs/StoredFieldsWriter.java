@@ -22,6 +22,7 @@ import java.io.Reader;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.IntUnaryOperator;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.TokenStream;
@@ -101,6 +102,20 @@ public abstract class StoredFieldsWriter implements Closeable {
       }
     }
   }
+
+  /** Copy/sort the stored fields from the provided {@link StoredFieldsReader} in this writer.
+   * Each docID of the incoming reader is translated in a sorted docID using the provided {@link IntUnaryOperator}.
+   */
+  public void sort(int maxDoc, StoredFieldsReader reader, FieldInfos fieldInfos, IntUnaryOperator newToOld) throws IOException {
+    reader.checkIntegrity();
+    MergeVisitor visitor = new MergeVisitor();
+    for (int docID = 0; docID < maxDoc; docID++) {
+      startDocument();
+      reader.visitDocument(newToOld.applyAsInt(docID), visitor);
+      finishDocument();
+    }
+    finish(fieldInfos, maxDoc);
+  }
   
   /** Merges in the stored fields from the readers in 
    *  <code>mergeState</code>. The default implementation skips
@@ -169,6 +184,13 @@ public abstract class StoredFieldsWriter implements Closeable {
           break;
         }
       }
+    }
+
+    /**
+     * Create a new merge visitor that keeps the original field infos.
+     */
+    public MergeVisitor() {
+      remapper = null;
     }
     
     @Override

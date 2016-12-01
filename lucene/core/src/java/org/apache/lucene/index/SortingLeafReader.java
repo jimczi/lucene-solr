@@ -50,7 +50,7 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 class SortingLeafReader extends FilterLeafReader {
 
-  private static class SortingFields extends FilterFields {
+  static class SortingFields extends FilterFields {
 
     private final Sorter.DocMap docMap;
     private final FieldInfos infos;
@@ -154,7 +154,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   }
 
-  private static class SortingBinaryDocValues extends BinaryDocValues {
+  static class SortingBinaryDocValues extends BinaryDocValues {
 
     private final CachedBinaryDVs dvs;
     private int docID = -1;
@@ -204,7 +204,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,CachedNumericDVs> cachedNumericDVs = new HashMap<>();
 
-  private static class CachedNumericDVs {
+  static class CachedNumericDVs {
     private final long[] values;
     private final BitSet docsWithField;
 
@@ -216,7 +216,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,CachedBinaryDVs> cachedBinaryDVs = new HashMap<>();
 
-  private static class CachedBinaryDVs {
+  static class CachedBinaryDVs {
     // TODO: at least cutover to BytesRefArray here:
     private final BytesRef[] values;
     private final BitSet docsWithField;
@@ -229,7 +229,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,int[]> cachedSortedDVs = new HashMap<>();
 
-  private static class SortingNumericDocValues extends NumericDocValues {
+  static class SortingNumericDocValues extends NumericDocValues {
 
     private final CachedNumericDVs dvs;
     private int docID = -1;
@@ -359,7 +359,7 @@ class SortingLeafReader extends FilterLeafReader {
     }
   }
 
-  private static class SortingSortedDocValues extends SortedDocValues {
+  static class SortingSortedDocValues extends SortedDocValues {
 
     private final SortedDocValues in;
     private final int[] ords;
@@ -436,7 +436,7 @@ class SortingLeafReader extends FilterLeafReader {
   // TODO: pack long[][] into an int[] (offset) and long[] instead:
   private final Map<String,long[][]> cachedSortedSetDVs = new HashMap<>();
 
-  private static class SortingSortedSetDocValues extends SortedSetDocValues {
+  static class SortingSortedSetDocValues extends SortedSetDocValues {
 
     private final SortedSetDocValues in;
     private final long[][] ords;
@@ -519,7 +519,7 @@ class SortingLeafReader extends FilterLeafReader {
 
   private final Map<String,long[][]> cachedSortedNumericDVs = new HashMap<>();
 
-  private static class SortingSortedNumericDocValues extends SortedNumericDocValues {
+  static class SortingSortedNumericDocValues extends SortedNumericDocValues {
     private final SortedNumericDocValues in;
     private final long[][] values;
     private int docID = -1;

@@ -21,6 +21,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.IntUnaryOperator;
 
 import org.apache.lucene.index.DocIDMerger;
 import org.apache.lucene.index.FieldInfo;
@@ -185,6 +186,18 @@ public abstract class TermVectorsWriter implements Closeable {
     }
   }
 
+  /** Copy/sort the term vectors from the provided {@link TermVectorsReader} in this writer.
+   * Each docID of the incoming reader is translated in a sorted docID using the provided {@link IntUnaryOperator}.
+   */
+  public void sort(int maxDoc, TermVectorsReader reader, FieldInfos fieldInfos, IntUnaryOperator newToOld) throws IOException {
+    reader.checkIntegrity();
+    for (int docID = 0; docID < maxDoc; docID++) {
+      Fields vectors = reader.get(newToOld.applyAsInt(docID));
+      addAllDocVectors(vectors, fieldInfos);
+    }
+    finish(fieldInfos, maxDoc);
+  }
+
   /** Merges in the term vectors from the readers in 
    *  <code>mergeState</code>. The default implementation skips
    *  over deleted documents, and uses {@link #startDocument(int)},
@@ -222,7 +235,7 @@ public abstract class TermVectorsWriter implements Closeable {
       } else {
         vectors = sub.reader.get(sub.docID);
       }
-      addAllDocVectors(vectors, mergeState);
+      addAllDocVectors(vectors, mergeState.mergeFieldInfos);
       docCount++;
     }
     finish(mergeState.mergeFieldInfos, docCount);
@@ -231,7 +244,7 @@ public abstract class TermVectorsWriter implements Closeable {
   
   /** Safe (but, slowish) default method to write every
    *  vector field in the document. */
-  protected final void addAllDocVectors(Fields vectors, MergeState mergeState) throws IOException {
+  protected final void addAllDocVectors(Fields vectors, FieldInfos fieldInfos) throws IOException {
     if (vectors == null) {
       startDocument(0);
       finishDocument();
@@ -257,7 +270,7 @@ public abstract class TermVectorsWriter implements Closeable {
     int fieldCount = 0;
     for(String fieldName : vectors) {
       fieldCount++;
-      final FieldInfo fieldInfo = mergeState.mergeFieldInfos.fieldInfo(fieldName);
+      final FieldInfo fieldInfo = fieldInfos.fieldInfo(fieldName);
 
       assert lastFieldName == null || fieldName.compareTo(lastFieldName) > 0: "lastFieldName=" + lastFieldName + " fieldName=" + fieldName;
       lastFieldName = fieldName;
