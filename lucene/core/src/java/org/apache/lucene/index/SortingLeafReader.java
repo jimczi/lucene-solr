@@ -42,12 +42,11 @@ import static org.apache.lucene.search.DocIdSetIterator.NO_MORE_DOCS;
 
 /**
  * An {@link org.apache.lucene.index.LeafReader} which supports sorting documents by a given
- * {@link Sort}.  This is package private and is only used by Lucene when it needs to merge
- * a newly flushed (unsorted) segment.
+ * {@link Sort}. This is package private and is only used by Lucene fo BWC when it needs to merge
+ * an unsorted flushed segment built by an older version (newly flushed segments are sorted since version 7.0).
  *
  * @lucene.experimental
  */
-
 class SortingLeafReader extends FilterLeafReader {
 
   static class SortingFields extends FilterFields {
