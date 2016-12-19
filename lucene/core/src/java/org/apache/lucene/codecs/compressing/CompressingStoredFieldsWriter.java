@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import java.util.function.IntUnaryOperator;
 
 import org.apache.lucene.codecs.CodecUtil;
 import org.apache.lucene.codecs.StoredFieldsReader;
@@ -489,24 +488,6 @@ public final class CompressingStoredFieldsWriter extends StoredFieldsWriter {
       v = Boolean.parseBoolean(System.getProperty(BULK_MERGE_ENABLED_SYSPROP, "true"));
     } catch (SecurityException ignored) {}
     BULK_MERGE_ENABLED = v;
-  }
-
-  @Override
-  public void sort(int maxDoc, StoredFieldsReader reader, FieldInfos fieldInfos, IntUnaryOperator newToOld) throws IOException {
-    if (reader instanceof CompressingStoredFieldsReader == false) {
-      super.sort(maxDoc, reader, fieldInfos, newToOld);
-      return ;
-    }
-    reader.checkIntegrity();
-    CompressingStoredFieldsReader compressReader = (CompressingStoredFieldsReader) reader;
-    for (int docID = 0; docID < maxDoc; docID++) {
-      SerializedDocument doc = compressReader.document(newToOld.applyAsInt(docID));
-      startDocument();
-      bufferedDocs.copyBytes(doc.in, doc.length);
-      numStoredFieldsInDoc = doc.numStoredFields;
-      finishDocument();
-    }
-    finish(fieldInfos, maxDoc);
   }
 
   @Override

@@ -18,11 +18,17 @@
 package org.apache.lucene.index;
 
 import java.io.IOException;
+import java.io.Reader;
+import java.nio.charset.StandardCharsets;
 import java.util.Map;
 
+import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.codecs.StoredFieldsReader;
 import org.apache.lucene.codecs.StoredFieldsWriter;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.store.IOContext;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
 
 final class SortingStoredFieldsConsumer extends StoredFieldsConsumer {
@@ -54,12 +60,19 @@ final class SortingStoredFieldsConsumer extends StoredFieldsConsumer {
     StoredFieldsReader reader = docWriter.codec.storedFieldsFormat()
         .fieldsReader(tmpDirectory, state.segmentInfo, state.fieldInfos, IOContext.DEFAULT);
     StoredFieldsReader mergeReader = reader.getMergeInstance();
-    StoredFieldsWriter writer = docWriter.codec.storedFieldsFormat()
+    StoredFieldsWriter sortWriter = docWriter.codec.storedFieldsFormat()
         .fieldsWriter(state.directory, state.segmentInfo, IOContext.DEFAULT);
     try {
-      writer.sort(state.segmentInfo.maxDoc(), mergeReader, state.fieldInfos, sortMap::newToOld);
+      reader.checkIntegrity();
+      CopyVisitor visitor = new CopyVisitor(sortWriter);
+      for (int docID = 0; docID < state.segmentInfo.maxDoc(); docID++) {
+        sortWriter.startDocument();
+        mergeReader.visitDocument(sortMap.newToOld(docID), visitor);
+        sortWriter.finishDocument();
+      }
+      sortWriter.finish(state.fieldInfos, state.segmentInfo.maxDoc());
     } finally {
-      IOUtils.close(reader, writer);
+      IOUtils.close(reader, sortWriter);
       IOUtils.deleteFiles(tmpDirectory,
           tmpDirectory.getTemporaryFiles().values());
     }
@@ -72,6 +85,122 @@ final class SortingStoredFieldsConsumer extends StoredFieldsConsumer {
     } finally {
       IOUtils.deleteFilesIgnoringExceptions(tmpDirectory,
           tmpDirectory.getTemporaryFiles().values());
+    }
+  }
+
+  /**
+   * A visitor that copies every field it sees in the provided {@link StoredFieldsWriter}.
+   */
+  private static class CopyVisitor extends StoredFieldVisitor implements IndexableField {
+    final StoredFieldsWriter writer;
+    BytesRef binaryValue;
+    String stringValue;
+    Number numericValue;
+    FieldInfo currentField;
+
+
+    CopyVisitor(StoredFieldsWriter writer) {
+      this.writer = writer;
+    }
+
+    @Override
+    public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
+      reset(fieldInfo);
+      // TODO: can we avoid new BR here?
+      binaryValue = new BytesRef(value);
+      write();
+    }
+
+    @Override
+    public void stringField(FieldInfo fieldInfo, byte[] value) throws IOException {
+      reset(fieldInfo);
+      // TODO: can we avoid new String here?
+      stringValue = new String(value, StandardCharsets.UTF_8);
+      write();
+    }
+
+    @Override
+    public void intField(FieldInfo fieldInfo, int value) throws IOException {
+      reset(fieldInfo);
+      numericValue = value;
+      write();
+    }
+
+    @Override
+    public void longField(FieldInfo fieldInfo, long value) throws IOException {
+      reset(fieldInfo);
+      numericValue = value;
+      write();
+    }
+
+    @Override
+    public void floatField(FieldInfo fieldInfo, float value) throws IOException {
+      reset(fieldInfo);
+      numericValue = value;
+      write();
+    }
+
+    @Override
+    public void doubleField(FieldInfo fieldInfo, double value) throws IOException {
+      reset(fieldInfo);
+      numericValue = value;
+      write();
+    }
+
+    @Override
+    public Status needsField(FieldInfo fieldInfo) throws IOException {
+      return Status.YES;
+    }
+
+    @Override
+    public String name() {
+      return currentField.name;
+    }
+
+    @Override
+    public IndexableFieldType fieldType() {
+      return StoredField.TYPE;
+    }
+
+    @Override
+    public BytesRef binaryValue() {
+      return binaryValue;
+    }
+
+    @Override
+    public String stringValue() {
+      return stringValue;
+    }
+
+    @Override
+    public Number numericValue() {
+      return numericValue;
+    }
+
+    @Override
+    public Reader readerValue() {
+      return null;
+    }
+
+    @Override
+    public float boost() {
+      return 1F;
+    }
+
+    @Override
+    public TokenStream tokenStream(Analyzer analyzer, TokenStream reuse) {
+      return null;
+    }
+
+    void reset(FieldInfo field) {
+      currentField = field;
+      binaryValue = null;
+      stringValue = null;
+      numericValue = null;
+    }
+
+    void write() throws IOException {
+      writer.writeField(currentField, this);
     }
   }
 }
