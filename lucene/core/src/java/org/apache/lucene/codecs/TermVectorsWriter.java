@@ -222,7 +222,7 @@ public abstract class TermVectorsWriter implements Closeable {
       } else {
         vectors = sub.reader.get(sub.docID);
       }
-      addAllDocVectors(vectors, mergeState.mergeFieldInfos);
+      addAllDocVectors(vectors, mergeState);
       docCount++;
     }
     finish(mergeState.mergeFieldInfos, docCount);
@@ -231,7 +231,7 @@ public abstract class TermVectorsWriter implements Closeable {
   
   /** Safe (but, slowish) default method to write every
    *  vector field in the document. */
-  protected final void addAllDocVectors(Fields vectors, FieldInfos fieldInfos) throws IOException {
+  protected final void addAllDocVectors(Fields vectors, MergeState mergeState) throws IOException {
     if (vectors == null) {
       startDocument(0);
       finishDocument();
@@ -257,7 +257,7 @@ public abstract class TermVectorsWriter implements Closeable {
     int fieldCount = 0;
     for(String fieldName : vectors) {
       fieldCount++;
-      final FieldInfo fieldInfo = fieldInfos.fieldInfo(fieldName);
+      final FieldInfo fieldInfo = mergeState.mergeFieldInfos.fieldInfo(fieldName);
 
       assert lastFieldName == null || fieldName.compareTo(lastFieldName) > 0: "lastFieldName=" + lastFieldName + " fieldName=" + fieldName;
       lastFieldName = fieldName;
