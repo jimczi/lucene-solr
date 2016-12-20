@@ -21,7 +21,6 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.function.IntUnaryOperator;
 
 import org.apache.lucene.index.DocIDMerger;
 import org.apache.lucene.index.FieldInfo;
@@ -184,18 +183,6 @@ public abstract class TermVectorsWriter implements Closeable {
         return docID;
       }
     }
-  }
-
-  /** Copy/sort the term vectors from the provided {@link TermVectorsReader} in this writer.
-   * Each docID of the incoming reader is translated in a sorted docID using the provided {@link IntUnaryOperator}.
-   */
-  public void sort(int maxDoc, TermVectorsReader reader, FieldInfos fieldInfos, IntUnaryOperator newToOld) throws IOException {
-    reader.checkIntegrity();
-    for (int docID = 0; docID < maxDoc; docID++) {
-      Fields vectors = reader.get(newToOld.applyAsInt(docID));
-      addAllDocVectors(vectors, fieldInfos);
-    }
-    finish(fieldInfos, maxDoc);
   }
 
   /** Merges in the term vectors from the readers in 
