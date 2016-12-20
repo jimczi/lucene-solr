@@ -834,7 +834,7 @@ public final class CompressingTermVectorsWriter extends TermVectorsWriter {
           } else {
             vectors = vectorsReader.get(i);
           }
-          addAllDocVectors(vectors, mergeState.mergeFieldInfos);
+          addAllDocVectors(vectors, mergeState);
           ++docCount;
         }
       }
